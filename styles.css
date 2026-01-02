@@ -101,7 +101,7 @@ body::before {
 
 /* ==================== Header ==================== */
 .header {
-    padding: var(--spacing-lg) 0;
+    padding: var(--spacing-md) 0;
     text-align: center;
     position: relative;
 }
@@ -134,7 +134,7 @@ body::before {
 .app-container {
     max-width: 1400px;
     margin: 0 auto;
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md) var(--spacing-lg);
 }
 
 /* ==================== Upload Section ==================== */
@@ -208,9 +208,9 @@ body::before {
 .btn-primary,
 .btn-secondary,
 .upload-button {
-    padding: var(--spacing-sm) var(--spacing-lg);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-base);
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: all var(--transition-base);
@@ -218,7 +218,12 @@ body::before {
     font-family: var(--font-primary);
     display: inline-flex;
     align-items: center;
-    gap: var(--spacing-xs);
+    gap: 5px;
+}
+
+.upload-button {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: var(--font-size-base);
 }
 
 .btn-primary,
@@ -247,6 +252,11 @@ body::before {
 
 .btn-secondary svg,
 .btn-primary svg {
+    width: 15px;
+    height: 15px;
+}
+
+.upload-button svg {
     width: 18px;
     height: 18px;
 }
@@ -299,6 +309,50 @@ body::before {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: all var(--transition-base);
+}
+
+.photo-item:hover img {
+    transform: scale(1.05);
+}
+
+/* Photo Preview on Hover */
+.photo-item::after {
+    content: '';
+    position: fixed;
+    width: 300px;
+    height: 300px;
+    background-image: var(--preview-image);
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    border: 3px solid var(--color-accent-primary);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all var(--transition-base);
+    background-color: var(--color-bg-primary);
+}
+
+.photo-item:hover::after {
+    opacity: 1;
+    transform: scale(1);
+    left: var(--mouse-x, 50%);
+    top: var(--mouse-y, 50%);
+    margin-left: 20px;
+    margin-top: -150px;
+}
+
+/* Disable hover preview while editing date */
+.photo-item.editing-date::after {
+    display: none;
+}
+
+.photo-item.editing-date:hover {
+    transform: none;
 }
 
 .photo-item .photo-date {
@@ -310,25 +364,29 @@ body::before {
     padding: var(--spacing-sm);
     font-size: var(--font-size-xs);
     color: white;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--spacing-xs);
 }
 
 .photo-item .date-display {
-    flex: 1;
+    display: block;
 }
 
 .photo-item .edit-date-btn {
-    background: rgba(237, 152, 80, 0.8);
+    position: absolute;
+    top: var(--spacing-xs);
+    right: calc(var(--spacing-xs) + 36px);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(237, 152, 80, 0.85);
+    color: white;
     border: none;
-    border-radius: var(--radius-sm);
-    padding: 2px 6px;
     cursor: pointer;
-    font-size: var(--font-size-xs);
-    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
     opacity: 0;
+    transition: all var(--transition-fast);
 }
 
 .photo-item:hover .edit-date-btn {
@@ -336,7 +394,7 @@ body::before {
 }
 
 .photo-item .edit-date-btn:hover {
-    background: rgba(237, 152, 80, 1);
+    background: var(--color-accent-primary);
     transform: scale(1.1);
 }
 
@@ -402,36 +460,84 @@ body::before {
     background: var(--color-bg-glass);
     backdrop-filter: blur(20px);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    padding: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: row;
+    gap: var(--spacing-md);
+    align-items: flex-start;
+}
+
+.control-section {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding-right: var(--spacing-md);
+    border-right: 1px solid rgba(230, 230, 230, 0.15);
+    flex: 1;
+    min-width: 0;
+}
+
+.control-section:last-child {
+    border-right: none;
+    padding-right: 0;
+}
+
+.section-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--color-accent-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 1px;
+    opacity: 0.8;
+}
+
+.control-row {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--spacing-md);
+    gap: var(--spacing-xs);
     align-items: center;
 }
 
 .control-group {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-xs);
+    gap: 4px;
 }
 
 .control-group label {
-    font-size: var(--font-size-sm);
+    font-size: 11px;
     color: var(--color-text-secondary);
     font-weight: 500;
+}
+
+.drawing-status {
+    margin-top: 4px;
+    padding: 6px 10px;
+    background: var(--gradient-glass);
+    border: 1px solid var(--color-accent-primary);
+    border-radius: var(--radius-sm);
+    text-align: center;
+}
+
+.drawing-status p {
+    color: var(--color-text-primary);
+    font-weight: 500;
+    font-size: 11px;
+    margin: 0;
 }
 
 .toggle-group {
     display: flex;
     background: var(--color-bg-tertiary);
     border-radius: var(--radius-sm);
-    padding: 4px;
+    padding: 2px;
 }
 
 .toggle-btn {
-    padding: var(--spacing-xs) var(--spacing-md);
+    padding: 5px 12px;
     border: none;
     background: transparent;
     color: var(--color-text-secondary);
@@ -440,14 +546,14 @@ body::before {
     transition: all var(--transition-fast);
     display: flex;
     align-items: center;
-    gap: var(--spacing-xs);
+    gap: 5px;
     font-family: var(--font-primary);
-    font-size: var(--font-size-sm);
+    font-size: 12px;
 }
 
 .toggle-btn svg {
-    width: 16px;
-    height: 16px;
+    width: 15px;
+    height: 15px;
 }
 
 .toggle-btn.active {
@@ -464,9 +570,10 @@ body::before {
     position: relative;
     background: var(--color-bg-secondary);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-sm);
     overflow: hidden;
     box-shadow: var(--shadow-lg);
+    margin-bottom: 12px;
 }
 
 #timelineCanvas {
@@ -484,24 +591,101 @@ body::before {
     pointer-events: none;
 }
 
-/* ==================== Drawing Instructions ==================== */
-.drawing-instructions {
-    margin-top: var(--spacing-md);
-    padding: var(--spacing-md);
-    background: var(--gradient-glass);
-    border: 1px solid var(--color-accent-primary);
-    border-radius: var(--radius-md);
-    text-align: center;
+/* ==================== Zoom Control ==================== */
+.zoom-control {
+    background: var(--color-bg-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: var(--spacing-md);
 }
 
-.drawing-instructions p {
-    color: var(--color-text-primary);
+.zoom-control label {
+    font-size: 11px;
+    color: var(--color-text-secondary);
     font-weight: 500;
+    white-space: nowrap;
 }
+
+.zoom-slider-container {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex: 1;
+}
+
+.zoom-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.zoom-btn:hover {
+    background: var(--color-bg-glass-hover);
+    border-color: var(--color-accent-primary);
+}
+
+#zoomSlider {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--color-bg-tertiary);
+    outline: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+
+#zoomSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--gradient-primary);
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+}
+
+#zoomSlider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--gradient-primary);
+    cursor: pointer;
+    border: none;
+    box-shadow: var(--shadow-sm);
+}
+
+#zoomSlider::-webkit-slider-thumb:hover {
+    box-shadow: var(--shadow-md);
+}
+
+#zoomSlider::-moz-range-thumb:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.zoom-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-accent-primary);
+    min-width: 45px;
+    text-align: right;
+}
+
 
 /* ==================== Modal ==================== */
 .modal {
@@ -537,9 +721,11 @@ body::before {
     background: var(--color-bg-secondary);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
-    overflow: hidden;
+    overflow-y: auto;
     box-shadow: var(--shadow-lg);
     animation: modalSlideIn 0.3s ease;
+    display: flex;
+    flex-direction: column;
 }
 
 @keyframes modalSlideIn {
@@ -554,44 +740,74 @@ body::before {
     }
 }
 
-.modal-close {
-    position: absolute;
-    top: var(--spacing-md);
-    right: var(--spacing-md);
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.6);
-    color: white;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-    z-index: 1;
-}
-
-.modal-close:hover {
-    background: var(--color-accent-tertiary);
-    transform: rotate(90deg);
-}
-
 #modalImage {
     max-width: 100%;
-    max-height: 70vh;
+    max-height: 50vh;
     display: block;
+    object-fit: contain;
+    cursor: zoom-in;
 }
 
 .modal-info {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--color-bg-secondary);
 }
 
 .modal-info h3 {
-    font-size: var(--font-size-xl);
-    margin-bottom: var(--spacing-sm);
+    font-size: var(--font-size-lg);
+    margin-bottom: 4px;
 }
 
 .modal-info p {
     color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.modal-label-editor {
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--color-border);
+}
+
+.modal-label-editor label {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    margin-bottom: 6px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.modal-label-editor input {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-primary);
+    margin-bottom: 8px;
+    transition: all var(--transition-fast);
+}
+
+.modal-label-editor input:focus {
+    outline: none;
+    border-color: var(--color-accent-primary);
+    background: var(--color-bg-secondary);
+    box-shadow: 0 0 0 2px rgba(237, 152, 80, 0.15);
+}
+
+.modal-label-editor input::placeholder {
+    color: var(--color-text-tertiary);
+    opacity: 0.6;
+}
+
+.modal-label-editor button {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: var(--font-size-sm);
 }
 
 /* ==================== Animations ==================== */
@@ -630,6 +846,24 @@ body::before {
 }
 
 /* ==================== Responsive Design ==================== */
+@media (max-width: 1024px) {
+    .timeline-controls {
+        flex-direction: column;
+    }
+
+    .control-section {
+        border-right: none;
+        border-bottom: 1px solid rgba(230, 230, 230, 0.15);
+        padding-right: 0;
+        padding-bottom: var(--spacing-xs);
+    }
+
+    .control-section:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+}
+
 @media (max-width: 768px) {
     .logo {
         font-size: var(--font-size-2xl);
@@ -639,17 +873,13 @@ body::before {
         grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     }
 
-    .timeline-controls {
+    .control-row {
         flex-direction: column;
         align-items: stretch;
     }
 
     .control-group {
         width: 100%;
-    }
-
-    .drawing-instructions {
-        flex-direction: column;
     }
 }
 

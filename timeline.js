@@ -6,6 +6,8 @@ let lastPoint = null;
 let isDraggingPhoto = false;
 let draggedPhoto = null;
 let hoveredPhoto = null;
+let clickStartPos = null;
+let clickStartTime = 0;
 
 // Zoom and Pan
 let zoomLevel = 1;
@@ -17,6 +19,9 @@ let panStart = { x: 0, y: 0 };
 
 // ==================== Initialize Timeline ====================
 function initializeTimeline() {
+    // Cleanup any existing listeners first to prevent stacking
+    cleanupTimeline();
+
     canvas = document.getElementById('timelineCanvas');
     ctx = canvas.getContext('2d');
 
@@ -27,10 +32,7 @@ function initializeTimeline() {
     renderTimeline();
 
     // Handle window resize
-    window.addEventListener('resize', () => {
-        updateCanvasSize();
-        renderTimeline();
-    });
+    window.addEventListener('resize', handleResize);
 
     // Add mouse interaction for hover and drag
     canvas.addEventListener('mousemove', handleCanvasMouseMove);
@@ -38,12 +40,30 @@ function initializeTimeline() {
     canvas.addEventListener('mouseup', handleCanvasMouseUp);
     canvas.addEventListener('mouseleave', handleCanvasMouseLeave);
 
-    // Add zoom and pan controls
+    // Add zoom with mouse wheel
     canvas.addEventListener('wheel', handleZoom, { passive: false });
 
     // Pan with space + drag
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+}
+
+function handleResize() {
+    updateCanvasSize();
+    renderTimeline();
+}
+
+function cleanupTimeline() {
+    if (!canvas) return;
+
+    window.removeEventListener('resize', handleResize);
+    canvas.removeEventListener('mousemove', handleCanvasMouseMove);
+    canvas.removeEventListener('mousedown', handleCanvasMouseDown);
+    canvas.removeEventListener('mouseup', handleCanvasMouseUp);
+    canvas.removeEventListener('mouseleave', handleCanvasMouseLeave);
+    canvas.removeEventListener('wheel', handleZoom);
+    window.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('keyup', handleKeyUp);
 }
 
 function updateCanvasSize() {
@@ -52,10 +72,10 @@ function updateCanvasSize() {
 
     if (state.orientation === 'horizontal') {
         canvasWidth = rect.width || 1200;
-        canvasHeight = 600;
+        canvasHeight = 450;
     } else {
         canvasWidth = 800;
-        canvasHeight = 1000;
+        canvasHeight = 800;
     }
 
     canvas.width = canvasWidth;
@@ -80,15 +100,15 @@ function renderTimeline() {
     ctx.translate(panX, panY);
     ctx.scale(zoomLevel, zoomLevel);
 
+    // Draw curve first (behind photos)
+    if (state.curvePoints.length > 0) {
+        drawCurve();
+    }
+
     if (state.orientation === 'horizontal') {
         renderHorizontalTimeline();
     } else {
         renderVerticalTimeline();
-    }
-
-    // Draw curve if exists
-    if (state.curvePoints.length > 0) {
-        drawCurve();
     }
 
     // Restore context before drawing UI elements
@@ -97,14 +117,8 @@ function renderTimeline() {
     // Draw year label (not affected by zoom/pan)
     drawYearLabel();
 
-    // Draw hover tooltip on top (not affected by zoom/pan)
-    drawHoverTooltip();
-
     // Draw emotion scale reference
     drawEmotionScaleReference();
-
-    // Draw zoom indicator
-    drawZoomIndicator();
 }
 
 // ==================== Horizontal Timeline ====================
@@ -292,11 +306,50 @@ function drawPhoto(photo, x, y, customSize = null) {
             ctx.stroke();
             ctx.shadowColor = 'transparent';
             ctx.shadowBlur = 0;
+
+            // Draw magnifying glass icon overlay
+            ctx.save();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.beginPath();
+            roundRect(ctx, x - halfSize, y - halfSize, size, size, 8);
+            ctx.fill();
+
+            // Draw magnifying glass icon
+            const iconSize = size * 0.4; // 40% of photo size
+            const iconX = x;
+            const iconY = y;
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // Circle
+            ctx.beginPath();
+            ctx.arc(iconX - iconSize * 0.1, iconY - iconSize * 0.1, iconSize * 0.35, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Handle
+            ctx.beginPath();
+            const handleStartX = iconX - iconSize * 0.1 + (iconSize * 0.35 * Math.cos(Math.PI / 4));
+            const handleStartY = iconY - iconSize * 0.1 + (iconSize * 0.35 * Math.sin(Math.PI / 4));
+            const handleEndX = iconX + iconSize * 0.3;
+            const handleEndY = iconY + iconSize * 0.3;
+            ctx.moveTo(handleStartX, handleStartY);
+            ctx.lineTo(handleEndX, handleEndY);
+            ctx.stroke();
+
+            ctx.restore();
         }
 
         // Draw emotion level if dragging this photo
         if (isDraggingPhoto && draggedPhoto === photo) {
             drawEmotionLevel(photo, x, y);
+        }
+
+        // Draw label if exists
+        if (photo.label) {
+            drawPhotoLabel(photo, x, y, size);
         }
     };
 
@@ -306,6 +359,33 @@ function drawPhoto(photo, x, y, customSize = null) {
     } else {
         img.onload = drawImageContent;
     }
+}
+
+// ==================== Draw Photo Label ====================
+function drawPhotoLabel(photo, x, y, photoSize = 60) {
+    const halfSize = photoSize / 2;
+    const labelY = y + halfSize + 5; // 5px below photo
+
+    // Draw label background
+    ctx.font = '11px Inter, sans-serif';
+    const textMetrics = ctx.measureText(photo.label);
+    const padding = 6;
+    const bgWidth = textMetrics.width + padding * 2;
+    const bgHeight = 18;
+
+    ctx.fillStyle = 'rgba(0, 31, 63, 0.9)';
+    ctx.strokeStyle = 'rgba(237, 152, 80, 0.6)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    roundRect(ctx, x - bgWidth / 2, labelY, bgWidth, bgHeight, 4);
+    ctx.fill();
+    ctx.stroke();
+
+    // Draw label text
+    ctx.fillStyle = '#E6E6E6';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(photo.label, x, labelY + bgHeight / 2);
 }
 
 // ==================== Drawing Mode ====================
@@ -575,6 +655,11 @@ function handleCanvasMouseDown(e) {
 
     const photo = findPhotoAtPosition(mouseX, mouseY);
     if (photo) {
+        // Check if this is a click (not a drag start)
+        // Store the click position to compare in mouseup
+        clickStartPos = { x: mouseX, y: mouseY };
+        clickStartTime = Date.now();
+
         isDraggingPhoto = true;
         draggedPhoto = photo;
         canvas.style.cursor = 'grabbing';
@@ -593,6 +678,24 @@ function handleCanvasMouseUp(e) {
 
     // End photo dragging
     if (isDraggingPhoto) {
+        // Check if this was a click (minimal movement and quick)
+        const rect = canvas.getBoundingClientRect();
+        let mouseX = e.clientX - rect.left;
+        let mouseY = e.clientY - rect.top;
+        mouseX = (mouseX - panX) / zoomLevel;
+        mouseY = (mouseY - panY) / zoomLevel;
+
+        const timeDiff = Date.now() - clickStartTime;
+        const distance = Math.sqrt(
+            Math.pow(mouseX - clickStartPos.x, 2) +
+            Math.pow(mouseY - clickStartPos.y, 2)
+        );
+
+        // If it was a click (not a drag), show modal
+        if (timeDiff < 300 && distance < 5 && draggedPhoto) {
+            showPhotoModal(draggedPhoto.id);
+        }
+
         isDraggingPhoto = false;
 
         // Clear original position tracking
@@ -629,74 +732,6 @@ function findPhotoAtPosition(x, y) {
     }
 
     return null;
-}
-
-// ==================== Draw Hover Tooltip ====================
-function drawHoverTooltip() {
-    if (!hoveredPhoto || !hoveredPhoto.timelineX || !hoveredPhoto.timelineY) return;
-
-    const photo = hoveredPhoto;
-    const x = photo.timelineX;
-    const y = photo.timelineY;
-
-    // Draw guide line based on orientation
-    ctx.strokeStyle = 'rgba(247, 185, 128, 0.7)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([3, 3]);
-    ctx.beginPath();
-
-    if (state.orientation === 'horizontal') {
-        // Vertical guide line
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvasHeight);
-    } else {
-        // Horizontal guide line
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvasWidth, y);
-    }
-
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Draw tooltip
-    const dateText = photo.hasValidDate !== false
-        ? formatDetailedDate(photo.captureDate)
-        : '날짜 정보 없음';
-
-    ctx.font = '14px Inter, sans-serif';
-    const textWidth = ctx.measureText(dateText).width;
-    const padding = 12;
-    const tooltipWidth = textWidth + padding * 2;
-    const tooltipHeight = 32;
-
-    // Position tooltip
-    let tooltipX = x - tooltipWidth / 2;
-    let tooltipY = y - 90;
-
-    // Keep tooltip in bounds
-    if (tooltipX < 10) tooltipX = 10;
-    if (tooltipX + tooltipWidth > canvasWidth - 10) tooltipX = canvasWidth - tooltipWidth - 10;
-    if (tooltipY < 10) tooltipY = y + 70;
-
-    // Draw tooltip background
-    ctx.fillStyle = 'rgba(0, 42, 84, 0.95)';
-    ctx.strokeStyle = 'rgba(237, 152, 80, 0.8)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    roundRect(ctx, tooltipX, tooltipY, tooltipWidth, tooltipHeight, 8);
-    ctx.fill();
-    ctx.stroke();
-
-    // Draw tooltip text
-    ctx.fillStyle = '#E6E6E6';
-    ctx.textAlign = 'center';
-    ctx.fillText(dateText, tooltipX + tooltipWidth / 2, tooltipY + tooltipHeight / 2 + 5);
-}
-
-function formatDetailedDate(date) {
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    return `${month}월 ${day}일`;
 }
 
 // ==================== Emotion Level System ====================
@@ -814,6 +849,11 @@ function drawYearLabel() {
 
 // ==================== Zoom and Pan Handlers ====================
 function handleZoom(e) {
+    // Only zoom if Ctrl (or Cmd on Mac) is pressed
+    if (!e.ctrlKey && !e.metaKey) {
+        return;
+    }
+
     e.preventDefault();
 
     const rect = canvas.getBoundingClientRect();
@@ -837,6 +877,15 @@ function handleZoom(e) {
     panX = mouseX - zoomPointX * newZoom;
     panY = mouseY - zoomPointY * newZoom;
     zoomLevel = newZoom;
+
+    // Update slider value
+    const zoomSlider = document.getElementById('zoomSlider');
+    const zoomValue = document.getElementById('zoomValue');
+    if (zoomSlider && zoomValue) {
+        const zoomPercent = Math.round(zoomLevel * 100);
+        zoomSlider.value = zoomPercent;
+        zoomValue.textContent = `${zoomPercent}%`;
+    }
 
     renderTimeline();
 }

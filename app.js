@@ -19,21 +19,32 @@ const elements = {
     createTimelineButton: document.getElementById('createTimelineButton'),
     uploadSection: document.getElementById('uploadSection'),
     timelineSection: document.getElementById('timelineSection'),
-    selectedYear: document.getElementById('selectedYear'),
     drawModeButton: document.getElementById('drawModeButton'),
     resetButton: document.getElementById('resetButton'),
-    drawingInstructions: document.getElementById('drawingInstructions'),
+    exportButton: document.getElementById('exportButton'),
+    drawingStatus: document.getElementById('drawingStatus'),
+    curveControlButtons: document.getElementById('curveControlButtons'),
+    clearCurveButtonGroup: document.getElementById('clearCurveButtonGroup'),
     finishDrawingButton: document.getElementById('finishDrawingButton'),
     clearCurveButton: document.getElementById('clearCurveButton'),
+    backToPhotosButton: document.getElementById('backToPhotosButton'),
+    zoomSlider: document.getElementById('zoomSlider'),
+    zoomInBtn: document.getElementById('zoomInBtn'),
+    zoomOutBtn: document.getElementById('zoomOutBtn'),
+    zoomValue: document.getElementById('zoomValue'),
     photoModal: document.getElementById('photoModal'),
     modalImage: document.getElementById('modalImage'),
     modalDate: document.getElementById('modalDate'),
     modalDetails: document.getElementById('modalDetails'),
-    modalClose: document.getElementById('modalClose'),
     modalBackdrop: document.getElementById('modalBackdrop'),
     uploadProgress: document.getElementById('uploadProgress'),
     uploadCount: document.getElementById('uploadCount'),
+    modalLabelInput: document.getElementById('modalLabelInput'),
+    saveLabelButton: document.getElementById('saveLabelButton'),
 };
+
+// Track current photo being viewed in modal
+let currentModalPhotoId = null;
 
 // ==================== File Upload Handlers ====================
 elements.uploadZone.addEventListener('click', () => {
@@ -219,10 +230,10 @@ function updatePhotoGrid() {
             <img src="${photo.imageUrl}" alt="${photo.name}">
             <div class="photo-date" data-photo-id="${photo.id}">
                 <span class="date-display">${formatDate(photo.captureDate)}</span>
-                <button class="edit-date-btn" data-photo-id="${photo.id}" title="날짜 편집">✏️</button>
             </div>
-            <input type="date" class="date-input" data-photo-id="${photo.id}" 
+            <input type="date" class="date-input" data-photo-id="${photo.id}"
                    value="${formatDateForInput(photo.captureDate)}" style="display: none;">
+            <button class="edit-date-btn" data-photo-id="${photo.id}" title="날짜 편집">✏️</button>
             <button class="remove-photo" data-photo-id="${photo.id}">×</button>
         </div>
     `).join('');
@@ -233,6 +244,19 @@ function updatePhotoGrid() {
             const photoId = parseFloat(e.target.closest('.photo-item').dataset.photoId);
             showPhotoModal(photoId);
         });
+    });
+
+    // Add hover preview handlers for photo grid
+    document.querySelectorAll('.photo-item').forEach(item => {
+        const img = item.querySelector('img');
+        if (img) {
+            item.style.setProperty('--preview-image', `url(${img.src})`);
+
+            item.addEventListener('mousemove', (e) => {
+                item.style.setProperty('--mouse-x', `${e.clientX}px`);
+                item.style.setProperty('--mouse-y', `${e.clientY}px`);
+            });
+        }
     });
 
     // Add click handlers for date editing
@@ -246,16 +270,22 @@ function updatePhotoGrid() {
 
     // Add change handlers for date input
     document.querySelectorAll('.date-input').forEach(input => {
-        input.addEventListener('change', (e) => {
+        input.addEventListener('input', (e) => {
             const photoId = parseFloat(input.dataset.photoId);
             const newDate = new Date(e.target.value);
-            updatePhotoDate(photoId, newDate);
+            if (!isNaN(newDate.getTime())) {
+                updatePhotoDate(photoId, newDate);
+            }
         });
 
-        input.addEventListener('blur', (e) => {
-            e.target.style.display = 'none';
-            const dateDisplay = e.target.parentElement.querySelector('.photo-date');
-            if (dateDisplay) dateDisplay.style.display = 'flex';
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                closeDateInput(e.target);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                closeDateInput(e.target);
+            }
         });
     });
 
@@ -280,8 +310,31 @@ function editPhotoDate(photoId) {
         dateDisplay.style.display = 'none';
         dateInput.style.display = 'block';
         dateInput.focus();
+
+        // Disable hover effects while editing
+        photoItem.classList.add('editing-date');
     }
 }
+
+function closeDateInput(input) {
+    input.style.display = 'none';
+    const dateDisplay = input.parentElement.querySelector('.photo-date');
+    if (dateDisplay) dateDisplay.style.display = 'block';
+
+    // Re-enable hover effects
+    const photoItem = input.parentElement;
+    if (photoItem) photoItem.classList.remove('editing-date');
+}
+
+// Close date input when clicking outside
+document.addEventListener('click', (e) => {
+    const openDateInputs = document.querySelectorAll('.date-input[style*="display: block"]');
+    openDateInputs.forEach(input => {
+        if (!input.contains(e.target) && !e.target.classList.contains('edit-date-btn')) {
+            closeDateInput(input);
+        }
+    });
+});
 
 function updatePhotoDate(photoId, newDate) {
     const photo = state.photos.find(p => p.id === photoId);
@@ -337,7 +390,6 @@ elements.createTimelineButton.addEventListener('click', () => {
     );
 
     state.selectedYear = parseInt(mostCommonYear);
-    elements.selectedYear.textContent = state.selectedYear;
 
     // Filter photos for selected year
     state.photos = state.photos.filter(p =>
@@ -347,6 +399,12 @@ elements.createTimelineButton.addEventListener('click', () => {
     // Switch to timeline view
     elements.uploadSection.style.display = 'none';
     elements.timelineSection.style.display = 'block';
+
+    // Reset zoom to 100%
+    if (elements.zoomSlider) {
+        elements.zoomSlider.value = 100;
+        elements.zoomValue.textContent = '100%';
+    }
 
     // Initialize timeline
     initializeTimeline();
@@ -370,11 +428,29 @@ elements.drawModeButton.addEventListener('click', () => {
 
     if (state.isDrawingMode) {
         elements.drawModeButton.style.background = 'var(--gradient-primary)';
-        elements.drawingInstructions.style.display = 'flex';
+        elements.drawModeButton.style.color = 'white';
+        // Update button text
+        const buttonText = elements.drawModeButton.querySelector('svg').nextSibling;
+        if (buttonText) {
+            buttonText.textContent = ' 곡선 그리는 중...';
+        }
+        // Show curve control buttons and status
+        elements.drawingStatus.style.display = 'block';
+        elements.curveControlButtons.style.display = 'flex';
+        elements.clearCurveButtonGroup.style.display = 'flex';
         enableDrawing();
     } else {
         elements.drawModeButton.style.background = '';
-        elements.drawingInstructions.style.display = 'none';
+        elements.drawModeButton.style.color = '';
+        // Restore button text
+        const buttonText = elements.drawModeButton.querySelector('svg').nextSibling;
+        if (buttonText) {
+            buttonText.textContent = ' 곡선 그리기';
+        }
+        // Hide curve control buttons and status
+        elements.drawingStatus.style.display = 'none';
+        elements.curveControlButtons.style.display = 'none';
+        elements.clearCurveButtonGroup.style.display = 'none';
         disableDrawing();
     }
 });
@@ -382,7 +458,16 @@ elements.drawModeButton.addEventListener('click', () => {
 elements.finishDrawingButton.addEventListener('click', () => {
     state.isDrawingMode = false;
     elements.drawModeButton.style.background = '';
-    elements.drawingInstructions.style.display = 'none';
+    elements.drawModeButton.style.color = '';
+    // Restore button text
+    const buttonText = elements.drawModeButton.querySelector('svg').nextSibling;
+    if (buttonText) {
+        buttonText.textContent = ' 곡선 그리기';
+    }
+    // Hide curve control buttons and status
+    elements.drawingStatus.style.display = 'none';
+    elements.curveControlButtons.style.display = 'none';
+    elements.clearCurveButtonGroup.style.display = 'none';
     disableDrawing();
 });
 
@@ -391,9 +476,121 @@ elements.clearCurveButton.addEventListener('click', () => {
     renderTimeline();
 });
 
+// ==================== Export Button ====================
+elements.exportButton.addEventListener('click', () => {
+    const canvas = document.getElementById('timelineCanvas');
+
+    // Save current zoom and pan state
+    const savedZoom = typeof zoomLevel !== 'undefined' ? zoomLevel : 1;
+    const savedPanX = typeof panX !== 'undefined' ? panX : 0;
+    const savedPanY = typeof panY !== 'undefined' ? panY : 0;
+
+    // Reset to default view to export entire timeline
+    if (typeof zoomLevel !== 'undefined') zoomLevel = 1;
+    if (typeof panX !== 'undefined') panX = 0;
+    if (typeof panY !== 'undefined') panY = 0;
+
+    // Re-render at default zoom/pan
+    if (typeof renderTimeline === 'function') {
+        renderTimeline();
+    }
+
+    // Wait a bit for rendering to complete
+    setTimeout(() => {
+        // Create a temporary canvas with white background
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+
+        // Fill with white background
+        tempCtx.fillStyle = '#ffffff';
+        tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+        // Draw the original canvas on top
+        tempCtx.drawImage(canvas, 0, 0);
+
+        // Convert to blob and download
+        tempCanvas.toBlob((blob) => {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const timestamp = new Date().toISOString().slice(0, 10);
+            link.download = `life-curve-${state.selectedYear}-${timestamp}.png`;
+            link.href = url;
+            link.click();
+            URL.revokeObjectURL(url);
+
+            // Restore original zoom and pan state
+            if (typeof zoomLevel !== 'undefined') zoomLevel = savedZoom;
+            if (typeof panX !== 'undefined') panX = savedPanX;
+            if (typeof panY !== 'undefined') panY = savedPanY;
+
+            // Re-render with restored state
+            if (typeof renderTimeline === 'function') {
+                renderTimeline();
+            }
+
+            // Update slider to match restored zoom
+            if (elements.zoomSlider && elements.zoomValue) {
+                const zoomPercent = Math.round(savedZoom * 100);
+                elements.zoomSlider.value = zoomPercent;
+                elements.zoomValue.textContent = `${zoomPercent}%`;
+            }
+        }, 'image/png', 1.0);
+    }, 100);
+});
+
+// ==================== Zoom Control ====================
+if (elements.zoomSlider) {
+    elements.zoomSlider.addEventListener('input', (e) => {
+        const zoomPercent = parseInt(e.target.value);
+        elements.zoomValue.textContent = `${zoomPercent}%`;
+
+        // Update timeline zoom level
+        if (typeof zoomLevel !== 'undefined' && typeof renderTimeline === 'function') {
+            zoomLevel = zoomPercent / 100;
+            renderTimeline();
+        }
+    });
+
+    elements.zoomInBtn.addEventListener('click', () => {
+        const currentValue = parseInt(elements.zoomSlider.value);
+        const newValue = Math.min(300, currentValue + 10);
+        elements.zoomSlider.value = newValue;
+        elements.zoomValue.textContent = `${newValue}%`;
+
+        if (typeof zoomLevel !== 'undefined' && typeof renderTimeline === 'function') {
+            zoomLevel = newValue / 100;
+            renderTimeline();
+        }
+    });
+
+    elements.zoomOutBtn.addEventListener('click', () => {
+        const currentValue = parseInt(elements.zoomSlider.value);
+        const newValue = Math.max(50, currentValue - 10);
+        elements.zoomSlider.value = newValue;
+        elements.zoomValue.textContent = `${newValue}%`;
+
+        if (typeof zoomLevel !== 'undefined' && typeof renderTimeline === 'function') {
+            zoomLevel = newValue / 100;
+            renderTimeline();
+        }
+    });
+}
+
+// ==================== Back to Photos Button ====================
+elements.backToPhotosButton.addEventListener('click', () => {
+    // Switch back to upload section without clearing photos
+    elements.timelineSection.style.display = 'none';
+    elements.uploadSection.style.display = 'block';
+
+    // Update photo grid to show current photos
+    updatePhotoGrid();
+});
+
 // ==================== Reset Button ====================
 elements.resetButton.addEventListener('click', () => {
-    if (confirm('처음부터 다시 시작하시겠습니까?')) {
+    if (confirm('모든 내용을 지우고 처음부터 다시 시작하시겠습니까?')) {
         state.photos = [];
         state.selectedYear = null;
         state.orientation = 'horizontal';
@@ -412,6 +609,8 @@ function showPhotoModal(photoId) {
     const photo = state.photos.find(p => p.id === photoId);
     if (!photo) return;
 
+    currentModalPhotoId = photoId;
+
     elements.modalImage.src = photo.imageUrl;
     elements.modalDate.textContent = formatDate(photo.captureDate);
 
@@ -423,15 +622,47 @@ function showPhotoModal(photoId) {
     }
     elements.modalDetails.textContent = details;
 
+    // Load existing label
+    elements.modalLabelInput.value = photo.label || '';
+
     elements.photoModal.classList.add('active');
 }
 
 function closePhotoModal() {
     elements.photoModal.classList.remove('active');
+    currentModalPhotoId = null;
 }
 
-elements.modalClose.addEventListener('click', closePhotoModal);
 elements.modalBackdrop.addEventListener('click', closePhotoModal);
+
+// Save label button
+elements.saveLabelButton.addEventListener('click', () => {
+    if (currentModalPhotoId === null) return;
+
+    const photo = state.photos.find(p => p.id === currentModalPhotoId);
+    if (!photo) return;
+
+    const labelText = elements.modalLabelInput.value.trim();
+    if (labelText) {
+        photo.label = labelText;
+    } else {
+        delete photo.label;
+    }
+
+    // Re-render timeline if in timeline view
+    if (typeof renderTimeline === 'function') {
+        renderTimeline();
+    }
+
+    closePhotoModal();
+});
+
+// Save label on Enter key
+elements.modalLabelInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        elements.saveLabelButton.click();
+    }
+});
 
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && elements.photoModal.classList.contains('active')) {

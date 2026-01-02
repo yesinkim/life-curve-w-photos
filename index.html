@@ -41,7 +41,7 @@
                     </svg>
                     <h3>사진을 드래그하거나 클릭하여 업로드</h3>
                     <p>일년의 추억이 담긴 사진 20장 내외를 선택해주세요</p>
-                    <button class="upload-button" id="uploadButton">사진 선택</button>
+                    <button type="button" class="upload-button" id="uploadButton">사진 선택</button>
                     <input type="file" id="fileInput" multiple accept="image/*" hidden>
                     <p class="file-info">JPG, PNG, HEIC 등 모든 이미지 형식 지원</p>
                 </div>
@@ -61,10 +61,10 @@
                 </div>
                 <div class="grid-header">
                     <h3>✓ 업로드 완료 - <span id="photoCount">0</span>장의 사진</h3>
-                    <button class="btn-secondary" id="clearButton">전체 삭제</button>
+                    <button type="button" class="btn-secondary" id="clearButton">전체 삭제</button>
                 </div>
                 <div class="grid-items" id="gridItems"></div>
-                <button class="btn-primary create-timeline-btn" id="createTimelineButton">
+                <button type="button" class="btn-primary create-timeline-btn" id="createTimelineButton">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
@@ -77,49 +77,104 @@
         <section class="timeline-section" id="timelineSection" style="display: none;">
             <!-- Controls -->
             <div class="timeline-controls">
-                <div class="control-group">
-                    <label>방향</label>
-                    <div class="toggle-group">
-                        <button class="toggle-btn active" data-orientation="horizontal">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                                <polyline points="12 5 19 12 12 19"></polyline>
-                            </svg>
-                            가로
-                        </button>
-                        <button class="toggle-btn" data-orientation="vertical">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <polyline points="5 12 12 19 19 12"></polyline>
-                            </svg>
-                            세로
-                        </button>
+                <!-- Timeline Settings Group -->
+                <div class="control-section">
+                    <h4 class="section-label">타임라인 설정</h4>
+                    <div class="control-row">
+                        <div class="control-group">
+                            <label>방향</label>
+                            <div class="toggle-group">
+                                <button type="button" class="toggle-btn active" data-orientation="horizontal">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                        <polyline points="12 5 19 12 12 19"></polyline>
+                                    </svg>
+                                    가로
+                                </button>
+                                <button type="button" class="toggle-btn" data-orientation="vertical">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <polyline points="5 12 12 19 19 12"></polyline>
+                                    </svg>
+                                    세로
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="control-group">
-                    <label>연도: <span id="selectedYear">-</span></label>
+                <!-- Curve Drawing Group -->
+                <div class="control-section">
+                    <h4 class="section-label">곡선 그리기</h4>
+                    <div class="control-row">
+                        <div class="control-group">
+                            <button type="button" class="btn-secondary" id="drawModeButton">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                                    <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                                </svg>
+                                곡선 그리기
+                            </button>
+                        </div>
+
+                        <div class="control-group" id="curveControlButtons" style="display: none;">
+                            <button type="button" class="btn-primary" id="finishDrawingButton">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                완료
+                            </button>
+                        </div>
+
+                        <div class="control-group" id="clearCurveButtonGroup" style="display: none;">
+                            <button type="button" class="btn-secondary" id="clearCurveButton">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                                곡선 초기화
+                            </button>
+                        </div>
+                    </div>
+                    <div class="drawing-status" id="drawingStatus" style="display: none;">
+                        <p>✏️ 캔버스 위를 클릭하거나 드래그하여 인생곡선을 그려보세요</p>
+                    </div>
                 </div>
 
-                <div class="control-group">
-                    <label>곡선 그리기 모드</label>
-                    <button class="btn-secondary" id="drawModeButton">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
-                            <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
-                        </svg>
-                        곡선 그리기
-                    </button>
-                </div>
+                <!-- Export & Management Group -->
+                <div class="control-section">
+                    <h4 class="section-label">내보내기 및 관리</h4>
+                    <div class="control-row">
+                        <div class="control-group">
+                            <button type="button" class="btn-primary" id="exportButton">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                내보내기
+                            </button>
+                        </div>
 
-                <div class="control-group">
-                    <button class="btn-secondary" id="resetButton">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="1 4 1 10 7 10"></polyline>
-                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-                        </svg>
-                        다시 시작
-                    </button>
+                        <div class="control-group">
+                            <button type="button" class="btn-secondary" id="backToPhotosButton">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                                사진 편집
+                            </button>
+                        </div>
+
+                        <div class="control-group">
+                            <button type="button" class="btn-secondary" id="resetButton">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="1 4 1 10 7 10"></polyline>
+                                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                                </svg>
+                                처음부터
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -129,11 +184,15 @@
                 <div class="canvas-overlay" id="canvasOverlay"></div>
             </div>
 
-            <!-- Drawing Instructions -->
-            <div class="drawing-instructions" id="drawingInstructions" style="display: none;">
-                <p>✏️ 캔버스 위를 클릭하거나 드래그하여 인생곡선을 그려보세요</p>
-                <button class="btn-primary" id="finishDrawingButton">완료</button>
-                <button class="btn-secondary" id="clearCurveButton">곡선 지우기</button>
+            <!-- Zoom Control -->
+            <div class="zoom-control">
+                <label>확대/축소</label>
+                <div class="zoom-slider-container">
+                    <button type="button" class="zoom-btn" id="zoomOutBtn">−</button>
+                    <input type="range" id="zoomSlider" min="50" max="300" value="100" step="10">
+                    <button type="button" class="zoom-btn" id="zoomInBtn">+</button>
+                    <span class="zoom-value" id="zoomValue">100%</span>
+                </div>
             </div>
         </section>
     </main>
@@ -142,11 +201,15 @@
     <div class="modal" id="photoModal">
         <div class="modal-backdrop" id="modalBackdrop"></div>
         <div class="modal-content">
-            <button class="modal-close" id="modalClose">×</button>
             <img id="modalImage" src="" alt="Photo">
             <div class="modal-info">
                 <h3 id="modalDate">날짜</h3>
                 <p id="modalDetails">상세 정보</p>
+                <div class="modal-label-editor">
+                    <label for="modalLabelInput">이름 / 이벤트</label>
+                    <input type="text" id="modalLabelInput" placeholder="예: 생일 파티, 여행, 졸업식...">
+                    <button type="button" class="btn-primary" id="saveLabelButton">저장</button>
+                </div>
             </div>
         </div>
     </div>
