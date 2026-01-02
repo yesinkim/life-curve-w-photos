@@ -70,8 +70,8 @@ function renderTimeline() {
 
     // Draw background gradient
     const gradient = ctx.createLinearGradient(0, 0, canvasWidth, canvasHeight);
-    gradient.addColorStop(0, '#151520');
-    gradient.addColorStop(1, '#1f1f2e');
+    gradient.addColorStop(0, '#001F3F');
+    gradient.addColorStop(1, '#002A54');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
@@ -94,6 +94,9 @@ function renderTimeline() {
     // Restore context before drawing UI elements
     ctx.restore();
 
+    // Draw year label (not affected by zoom/pan)
+    drawYearLabel();
+
     // Draw hover tooltip on top (not affected by zoom/pan)
     drawHoverTooltip();
 
@@ -113,7 +116,7 @@ function renderHorizontalTimeline() {
     const timelineLength = timelineEnd - timelineStart;
 
     // Draw main timeline axis
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.strokeStyle = 'rgba(230, 230, 230, 0.3)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(timelineStart, timelineY);
@@ -122,7 +125,7 @@ function renderHorizontalTimeline() {
 
     // Draw month markers
     ctx.font = '12px Inter, sans-serif';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.fillStyle = 'rgba(230, 230, 230, 0.8)';
     ctx.textAlign = 'center';
 
     const months = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
@@ -139,12 +142,6 @@ function renderHorizontalTimeline() {
         // Month label
         ctx.fillText(months[i], x, timelineY + 30);
     }
-
-    // Draw year label
-    ctx.font = 'bold 24px Inter, sans-serif';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.textAlign = 'left';
-    ctx.fillText(state.selectedYear, timelineStart, 40);
 
     // Separate photos with and without metadata
     const photosWithDate = state.photos.filter(p => p.hasValidDate !== false);
@@ -212,12 +209,6 @@ function renderVerticalTimeline() {
         ctx.fillText(months[i], timelineX - 20, y + 4);
     }
 
-    // Draw year label
-    ctx.font = 'bold 24px Inter, sans-serif';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.textAlign = 'center';
-    ctx.fillText(state.selectedYear, canvasWidth / 2, 40);
-
     // Separate photos with and without metadata
     const photosWithDate = state.photos.filter(p => p.hasValidDate !== false);
     const photosWithoutDate = state.photos.filter(p => p.hasValidDate === false);
@@ -284,7 +275,7 @@ function drawPhoto(photo, x, y, customSize = null) {
 
         // Draw border (highlight if hovered)
         const isHovered = hoveredPhoto === photo;
-        ctx.strokeStyle = isHovered ? 'rgba(139, 92, 246, 0.8)' : 'rgba(255, 255, 255, 0.3)';
+        ctx.strokeStyle = isHovered ? 'rgba(237, 152, 80, 0.9)' : 'rgba(230, 230, 230, 0.3)';
         ctx.lineWidth = isHovered ? 3 : 2;
         ctx.beginPath();
         roundRect(ctx, x - halfSize, y - halfSize, size, size, 8);
@@ -292,9 +283,9 @@ function drawPhoto(photo, x, y, customSize = null) {
 
         // Draw glow if hovered
         if (isHovered) {
-            ctx.shadowColor = 'rgba(139, 92, 246, 0.6)';
+            ctx.shadowColor = 'rgba(237, 152, 80, 0.6)';
             ctx.shadowBlur = 15;
-            ctx.strokeStyle = 'rgba(139, 92, 246, 0.4)';
+            ctx.strokeStyle = 'rgba(237, 152, 80, 0.4)';
             ctx.lineWidth = 5;
             ctx.beginPath();
             roundRect(ctx, x - halfSize, y - halfSize, size, size, 8);
@@ -400,13 +391,13 @@ function handleTouchMove(e) {
 function drawCurve() {
     if (state.curvePoints.length < 2) return;
 
-    ctx.strokeStyle = 'rgba(139, 92, 246, 0.8)';
+    ctx.strokeStyle = 'rgba(247, 185, 128, 0.8)';
     ctx.lineWidth = 4;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
     // Draw gradient shadow
-    ctx.shadowColor = 'rgba(139, 92, 246, 0.5)';
+    ctx.shadowColor = 'rgba(237, 152, 80, 0.5)';
     ctx.shadowBlur = 20;
 
     ctx.beginPath();
@@ -458,8 +449,8 @@ function roundRect(ctx, x, y, width, height, radius) {
 // ==================== No Date Zone ====================
 function drawNoDateZone(x, y, width, height, photos) {
     // Draw zone background
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.fillStyle = 'rgba(230, 230, 230, 0.03)';
+    ctx.strokeStyle = 'rgba(230, 230, 230, 0.2)';
     ctx.lineWidth = 2;
     ctx.setLineDash([5, 5]);
     ctx.beginPath();
@@ -470,7 +461,7 @@ function drawNoDateZone(x, y, width, height, photos) {
 
     // Draw label
     ctx.font = '12px Inter, sans-serif';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.fillStyle = 'rgba(16, 55, 92, 0.6)';
     ctx.textAlign = 'center';
     ctx.fillText('날짜 정보 없음', x + width / 2, y + 20);
     ctx.fillText('(드래그하여 배치)', x + width / 2, y + 35);
@@ -649,7 +640,7 @@ function drawHoverTooltip() {
     const y = photo.timelineY;
 
     // Draw guide line based on orientation
-    ctx.strokeStyle = 'rgba(139, 92, 246, 0.6)';
+    ctx.strokeStyle = 'rgba(247, 185, 128, 0.7)';
     ctx.lineWidth = 1;
     ctx.setLineDash([3, 3]);
     ctx.beginPath();
@@ -688,8 +679,8 @@ function drawHoverTooltip() {
     if (tooltipY < 10) tooltipY = y + 70;
 
     // Draw tooltip background
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
-    ctx.strokeStyle = 'rgba(139, 92, 246, 0.8)';
+    ctx.fillStyle = 'rgba(0, 42, 84, 0.95)';
+    ctx.strokeStyle = 'rgba(237, 152, 80, 0.8)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     roundRect(ctx, tooltipX, tooltipY, tooltipWidth, tooltipHeight, 8);
@@ -697,7 +688,7 @@ function drawHoverTooltip() {
     ctx.stroke();
 
     // Draw tooltip text
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = '#E6E6E6';
     ctx.textAlign = 'center';
     ctx.fillText(dateText, tooltipX + tooltipWidth / 2, tooltipY + tooltipHeight / 2 + 5);
 }
@@ -738,9 +729,9 @@ function drawEmotionLevel(photo, x, y) {
     const badgeY = y - 15;
 
     // Badge background
-    const color = level > 0 ? 'rgba(99, 102, 241, 0.95)' : level < 0 ? 'rgba(236, 72, 153, 0.95)' : 'rgba(139, 92, 246, 0.95)';
+    const color = level > 0 ? 'rgba(237, 152, 80, 0.95)' : level < 0 ? 'rgba(0, 42, 84, 0.95)' : 'rgba(247, 185, 128, 0.95)';
     ctx.fillStyle = color;
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     roundRect(ctx, badgeX, badgeY, badgeWidth, badgeHeight, 6);
@@ -782,7 +773,7 @@ function drawEmotionScaleReference() {
     ctx.moveTo(scaleX - 5, centerY - lineHeight);
     ctx.lineTo(scaleX + 5, centerY - lineHeight);
     ctx.stroke();
-    ctx.fillStyle = 'rgba(99, 102, 241, 0.7)';
+    ctx.fillStyle = 'rgba(243, 198, 35, 0.9)';
     ctx.fillText('+10', scaleX + 10, centerY - lineHeight + 4);
 
     // 0
@@ -791,7 +782,7 @@ function drawEmotionScaleReference() {
     ctx.moveTo(scaleX - 8, centerY);
     ctx.lineTo(scaleX + 8, centerY);
     ctx.stroke();
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.fillStyle = 'rgba(16, 55, 92, 0.7)';
     ctx.fillText('0', scaleX + 10, centerY + 4);
 
     // -10
@@ -800,8 +791,25 @@ function drawEmotionScaleReference() {
     ctx.moveTo(scaleX - 5, centerY + lineHeight);
     ctx.lineTo(scaleX + 5, centerY + lineHeight);
     ctx.stroke();
-    ctx.fillStyle = 'rgba(236, 72, 153, 0.7)';
+    ctx.fillStyle = 'rgba(16, 55, 92, 0.9)';
     ctx.fillText('-10', scaleX + 10, centerY + lineHeight + 4);
+}
+
+// ==================== Draw Year Label (Fixed Position) ====================
+function drawYearLabel() {
+    ctx.save();
+    ctx.font = 'bold 28px Inter, sans-serif';
+    ctx.fillStyle = 'rgba(230, 230, 230, 0.9)';
+
+    if (state.orientation === 'horizontal') {
+        ctx.textAlign = 'left';
+        ctx.fillText(state.selectedYear, 30, 45);
+    } else {
+        ctx.textAlign = 'center';
+        ctx.fillText(state.selectedYear, canvasWidth / 2, 45);
+    }
+
+    ctx.restore();
 }
 
 // ==================== Zoom and Pan Handlers ====================
@@ -884,8 +892,8 @@ function drawZoomIndicator() {
     const indicatorHeight = 40;
 
     // Draw background
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.strokeStyle = 'rgba(16, 55, 92, 0.2)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     roundRect(ctx, indicatorX, indicatorY, indicatorWidth, indicatorHeight, 8);
@@ -898,7 +906,7 @@ function drawZoomIndicator() {
     const iconRadius = 8;
 
     // Glass circle
-    ctx.strokeStyle = 'rgba(139, 92, 246, 0.9)';
+    ctx.strokeStyle = 'rgba(235, 131, 23, 0.9)';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.arc(iconX, iconY, iconRadius, 0, Math.PI * 2);
@@ -912,7 +920,7 @@ function drawZoomIndicator() {
 
     // Plus sign for zoom in
     if (zoomLevel > 1) {
-        ctx.strokeStyle = 'rgba(99, 102, 241, 0.7)';
+        ctx.strokeStyle = 'rgba(243, 198, 35, 0.8)';
         ctx.lineWidth = 1.5;
         const plusSize = 4;
         ctx.beginPath();
@@ -924,7 +932,7 @@ function drawZoomIndicator() {
     }
 
     // Zoom percentage text
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.fillStyle = 'rgba(16, 55, 92, 0.85)';
     ctx.font = 'bold 15px Inter, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';

@@ -31,6 +31,8 @@ const elements = {
     modalDetails: document.getElementById('modalDetails'),
     modalClose: document.getElementById('modalClose'),
     modalBackdrop: document.getElementById('modalBackdrop'),
+    uploadProgress: document.getElementById('uploadProgress'),
+    uploadCount: document.getElementById('uploadCount'),
 };
 
 // ==================== File Upload Handlers ====================
@@ -71,19 +73,92 @@ async function handleFileSelect(e) {
 }
 
 async function processFiles(files) {
-    for (const file of files) {
+    if (files.length === 0) return;
+
+    // Show progress indicator
+    elements.uploadProgress.style.display = 'flex';
+    elements.uploadZone.style.pointerEvents = 'none';
+    elements.uploadZone.style.opacity = '0.6';
+
+    const total = files.length;
+    let processed = 0;
+
+    elements.uploadCount.textContent = `${processed}/${total}`;
+
+    // Process all files in parallel for much better performance
+    const promises = Array.from(files).map(async (file) => {
         try {
             const photoData = await extractPhotoData(file);
             state.photos.push(photoData);
+
+            // Update progress
+            processed++;
+            elements.uploadCount.textContent = `${processed}/${total}`;
+
+            return photoData;
         } catch (error) {
             console.error('Error processing file:', file.name, error);
+            processed++;
+            elements.uploadCount.textContent = `${processed}/${total}`;
+            return null;
         }
-    }
+    });
 
+    // Wait for all files to be processed
+    await Promise.all(promises);
+
+    // Update grid once after all files are done
     updatePhotoGrid();
+
+    // Hide progress indicator
+    setTimeout(() => {
+        elements.uploadProgress.style.display = 'none';
+        elements.uploadZone.style.pointerEvents = 'auto';
+        elements.uploadZone.style.opacity = '1';
+    }, 500);
 }
 
 async function extractPhotoData(file) {
+    // Extract EXIF from original file BEFORE conversion to preserve metadata
+    let exifData = null;
+    let captureDate = null;
+
+    try {
+        exifData = await exifr.parse(file);
+        // Try to get the best date available from EXIF
+        captureDate = exifData?.DateTimeOriginal ||
+            exifData?.DateTime ||
+            exifData?.CreateDate ||
+            null;
+    } catch (exifError) {
+        console.warn('No EXIF data found for:', file.name);
+    }
+
+    // Check if file is HEIC and convert if necessary
+    let processedFile = file;
+
+    if (file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic') {
+        try {
+            console.log('Converting HEIC file:', file.name);
+            const convertedBlob = await heic2any({
+                blob: file,
+                toType: 'image/jpeg',
+                quality: 0.9
+            });
+
+            // Create a new File object from the blob
+            processedFile = new File(
+                [convertedBlob],
+                file.name.replace(/\.heic$/i, '.jpg'),
+                { type: 'image/jpeg' }
+            );
+            console.log('HEIC conversion successful, using original EXIF date');
+        } catch (error) {
+            console.warn('HEIC conversion failed, using original file:', error);
+            // Continue with original file if conversion fails
+        }
+    }
+
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
 
@@ -91,20 +166,9 @@ async function extractPhotoData(file) {
             try {
                 const imageUrl = e.target.result;
 
-                // Extract EXIF data
-                let exifData = null;
-                let captureDate = null;
-
-                try {
-                    exifData = await exifr.parse(file);
-
-                    // Try to get the best date available
-                    captureDate = exifData?.DateTimeOriginal ||
-                        exifData?.DateTime ||
-                        exifData?.CreateDate ||
-                        new Date(file.lastModified);
-                } catch (exifError) {
-                    console.warn('No EXIF data found for:', file.name);
+                // Use EXIF data extracted from original file
+                // Fallback to file lastModified if no EXIF date found
+                if (!captureDate) {
                     captureDate = new Date(file.lastModified);
                 }
 
@@ -118,7 +182,7 @@ async function extractPhotoData(file) {
 
                 resolve({
                     id: Date.now() + Math.random(),
-                    file,
+                    file: processedFile,
                     imageUrl,
                     captureDate,
                     exifData,
@@ -131,7 +195,7 @@ async function extractPhotoData(file) {
         };
 
         reader.onerror = reject;
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(processedFile);
     });
 }
 
@@ -153,12 +217,17 @@ function updatePhotoGrid() {
     elements.gridItems.innerHTML = sortedPhotos.map(photo => `
         <div class="photo-item" data-photo-id="${photo.id}">
             <img src="${photo.imageUrl}" alt="${photo.name}">
-            <div class="photo-date">${formatDate(photo.captureDate)}</div>
+            <div class="photo-date" data-photo-id="${photo.id}">
+                <span class="date-display">${formatDate(photo.captureDate)}</span>
+                <button class="edit-date-btn" data-photo-id="${photo.id}" title="날짜 편집">✏️</button>
+            </div>
+            <input type="date" class="date-input" data-photo-id="${photo.id}" 
+                   value="${formatDateForInput(photo.captureDate)}" style="display: none;">
             <button class="remove-photo" data-photo-id="${photo.id}">×</button>
         </div>
     `).join('');
 
-    // Add click handlers
+    // Add click handlers for photo viewing
     document.querySelectorAll('.photo-item img').forEach(img => {
         img.addEventListener('click', (e) => {
             const photoId = parseFloat(e.target.closest('.photo-item').dataset.photoId);
@@ -166,6 +235,31 @@ function updatePhotoGrid() {
         });
     });
 
+    // Add click handlers for date editing
+    document.querySelectorAll('.edit-date-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const photoId = parseFloat(btn.dataset.photoId);
+            editPhotoDate(photoId);
+        });
+    });
+
+    // Add change handlers for date input
+    document.querySelectorAll('.date-input').forEach(input => {
+        input.addEventListener('change', (e) => {
+            const photoId = parseFloat(input.dataset.photoId);
+            const newDate = new Date(e.target.value);
+            updatePhotoDate(photoId, newDate);
+        });
+
+        input.addEventListener('blur', (e) => {
+            e.target.style.display = 'none';
+            const dateDisplay = e.target.parentElement.querySelector('.photo-date');
+            if (dateDisplay) dateDisplay.style.display = 'flex';
+        });
+    });
+
+    // Add click handlers for remove button
     document.querySelectorAll('.remove-photo').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -173,6 +267,35 @@ function updatePhotoGrid() {
             removePhoto(photoId);
         });
     });
+}
+
+function editPhotoDate(photoId) {
+    const photoItem = document.querySelector(`.photo-item[data-photo-id="${photoId}"]`);
+    if (!photoItem) return;
+
+    const dateDisplay = photoItem.querySelector('.photo-date');
+    const dateInput = photoItem.querySelector('.date-input');
+
+    if (dateDisplay && dateInput) {
+        dateDisplay.style.display = 'none';
+        dateInput.style.display = 'block';
+        dateInput.focus();
+    }
+}
+
+function updatePhotoDate(photoId, newDate) {
+    const photo = state.photos.find(p => p.id === photoId);
+    if (!photo) return;
+
+    photo.captureDate = newDate;
+    updatePhotoGrid();
+}
+
+function formatDateForInput(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 function removePhoto(photoId) {
