@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life Curve - 인생곡선 타임라인</title>
+    <meta name="description" content="사진으로 그려내는 당신의 인생 이야기. 추억의 순간들을 타임라인에 배치하고 인생곡선을 그려보세요.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <h1 class="logo">Life Curve</h1>
+            <p class="tagline">사진으로 그려내는 인생의 곡선</p>
+        </div>
+    </header>
+
+    <!-- Main App Container -->
+    <main class="app-container">
+        <!-- Upload Section -->
+        <section class="upload-section" id="uploadSection">
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-content">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <h2>사진을 드래그하거나 클릭하여 업로드</h2>
+                    <p>일년의 추억이 담긴 사진 20장 내외를 선택해주세요</p>
+                    <button class="upload-button" id="uploadButton">사진 선택</button>
+                    <input type="file" id="fileInput" multiple accept="image/*" hidden>
+                    <p class="file-info">JPG, PNG, HEIC 등 모든 이미지 형식 지원</p>
+                </div>
+            </div>
+
+            <!-- Photo Preview Grid -->
+            <div class="photo-grid" id="photoGrid" style="display: none;">
+                <div class="grid-header">
+                    <h3>업로드된 사진 <span id="photoCount">0</span>장</h3>
+                    <button class="btn-secondary" id="clearButton">전체 삭제</button>
+                </div>
+                <div class="grid-items" id="gridItems"></div>
+                <button class="btn-primary" id="createTimelineButton">타임라인 생성</button>
+            </div>
+        </section>
+
+        <!-- Timeline Section -->
+        <section class="timeline-section" id="timelineSection" style="display: none;">
+            <!-- Controls -->
+            <div class="timeline-controls">
+                <div class="control-group">
+                    <label>방향</label>
+                    <div class="toggle-group">
+                        <button class="toggle-btn active" data-orientation="horizontal">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                <polyline points="12 5 19 12 12 19"></polyline>
+                            </svg>
+                            가로
+                        </button>
+                        <button class="toggle-btn" data-orientation="vertical">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <polyline points="5 12 12 19 19 12"></polyline>
+                            </svg>
+                            세로
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>연도: <span id="selectedYear">-</span></label>
+                </div>
+
+                <div class="control-group">
+                    <label>곡선 그리기 모드</label>
+                    <button class="btn-secondary" id="drawModeButton">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                            <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                        </svg>
+                        곡선 그리기
+                    </button>
+                </div>
+
+                <div class="control-group">
+                    <button class="btn-secondary" id="resetButton">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="1 4 1 10 7 10"></polyline>
+                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                        </svg>
+                        다시 시작
+                    </button>
+                </div>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="canvas-container" id="canvasContainer">
+                <canvas id="timelineCanvas"></canvas>
+                <div class="canvas-overlay" id="canvasOverlay"></div>
+            </div>
+
+            <!-- Drawing Instructions -->
+            <div class="drawing-instructions" id="drawingInstructions" style="display: none;">
+                <p>✏️ 캔버스 위를 클릭하거나 드래그하여 인생곡선을 그려보세요</p>
+                <button class="btn-primary" id="finishDrawingButton">완료</button>
+                <button class="btn-secondary" id="clearCurveButton">곡선 지우기</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Photo Detail Modal -->
+    <div class="modal" id="photoModal">
+        <div class="modal-backdrop" id="modalBackdrop"></div>
+        <div class="modal-content">
+            <button class="modal-close" id="modalClose">×</button>
+            <img id="modalImage" src="" alt="Photo">
+            <div class="modal-info">
+                <h3 id="modalDate">날짜</h3>
+                <p id="modalDetails">상세 정보</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.umd.min.js"></script>
+    <script src="timeline.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
